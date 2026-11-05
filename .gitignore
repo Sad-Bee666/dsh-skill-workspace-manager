@@ -1,0 +1,8 @@
+node_modules/
+*.log
+inventory.json
+inventory*.json
+plan.local.json
+*.sample.json
+.DS_Store
+Thumbs.db
