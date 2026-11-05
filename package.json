@@ -28,5 +28,13 @@
     "inventory": "node scripts/session-inventory.mjs",
     "archive": "node scripts/workspace-archive.mjs",
     "purge": "node scripts/workspace-purge.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sad-Bee666/dsh-skill-workspace-manager.git"
+  },
+  "homepage": "https://github.com/Sad-Bee666/dsh-skill-workspace-manager#readme",
+  "bugs": {
+    "url": "https://github.com/Sad-Bee666/dsh-skill-workspace-manager/issues"
   }
 }
