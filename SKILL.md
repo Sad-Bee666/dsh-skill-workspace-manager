@@ -15,6 +15,15 @@ description: 按 DSH 会话归档并瘦身工作区。读取 ~/.dsh/sessions 下
 - 单一项目重构（直接改代码即可）。
 - 用户只要一份文件清单（用 glob/ls 即可，不必跑归档流程）。
 
+## 技能根目录
+
+本技能的脚本不在工作区里。执行前先定位根目录：
+
+- 用户级安装：`~/.dsh/skills/workspace-manager`（`node scripts/install.mjs` 会装到这里，DSH 默认扫描 `<dshHome>/skills`）
+- 仓库副本：`<工作区>/skills/workspace-manager`（源码，改完用 `npm run install-skill` 同步到用户级）
+
+下文命令里的 `scripts/...` 都相对技能根目录，跨目录调用请写绝对路径。
+
 ## 默认动作：自动归档（`--auto`）
 
 会话里出现新产物时，**不要手写 plan.json**，直接跑：

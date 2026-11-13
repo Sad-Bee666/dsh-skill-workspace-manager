@@ -28,7 +28,8 @@
     "inventory": "node scripts/session-inventory.mjs",
     "archive": "node scripts/workspace-archive.mjs",
     "purge": "node scripts/workspace-purge.mjs",
-    "auto": "node scripts/workspace-archive.mjs --auto"
+    "auto": "node scripts/workspace-archive.mjs --auto",
+    "install-skill": "node scripts/install.mjs"
   },
   "repository": {
     "type": "git",

@@ -78,6 +78,13 @@ node scripts/workspace-purge.mjs --workspace /path/to/workspace --archive 会话
 
 ## 安装到 DSH
 
+**方式 0（推荐，已默认扫描）**：把技能放进 `<dshHome>/skills`（`~/.dsh/skills/workspace-manager/`）即可，DSH 默认扫描该目录，无需改任何配置，升级/换 profile 也不会丢：
+
+```bash
+node scripts/install.mjs          # 拷到 ~/.dsh/skills/workspace-manager
+node scripts/install.mjs --check  # 检查是否已安装
+```
+
 **方式 A（最简单）**：不安装。新会话里说「按 `<技能目录>/SKILL.md` 执行，目标是整理 X 工作区」。
 
 **方式 B（注册技能目录，推荐长期）**：在 `~/.dsh/profiles/<profile>/cordis.patch.yml` 追加：
@@ -93,6 +100,7 @@ node scripts/workspace-purge.mjs --workspace /path/to/workspace --archive 会话
 ```
 
 > 第一项是 DSH 内置技能目录，**必须保留**，否则 office 等内置技能会消失。修改后重启 DSH。
+> 注意：这条 patch 依赖 `skill-filesystem` 这个插件 id 与 `!!js` 表达式，在部分版本里不生效且不会报错——优先用上面的方式 0。
 
 **方式 C（作为 skills-only 插件分发）**：参照 `dsh-plugin-word-docx-writer` 的结构，在 `package.json` 里声明
 `"dsh": { "bundle": { "patch": "./cordis.patch.yml" } }`，补一个 no-op 插件入口与 insert patch 行，再用插件市场安装。
