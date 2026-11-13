@@ -19,12 +19,17 @@ const CAT_DOC = [
   ['08', '其他', '不属于以上的杂项'],
 ];
 const USAGE = [
-  'workspace-archive — 按 plan.json 把工作区产物分类复制成「一个会话一个归档目录」',
+  'workspace-archive — 把工作区产物按会话分类复制成「一个会话一个归档目录」',
   '',
-  '用法: node workspace-archive.mjs --workspace <ws> --plan <plan.json> [选项]',
+  '用法: node workspace-archive.mjs --workspace <ws> (--auto | --plan <plan.json>) [选项]',
   '',
   '  --workspace <dir>  工作区根目录，默认当前目录',
-  '  --plan <file>      归档计划 JSON（见 templates/plan.example.json）',
+  '  --auto             自动推断归档计划（按会话时间窗 + 8 段式分类），无需手写 plan',
+  '  --session <id>     --auto 时指定会话，默认取该工作区最近活跃的会话',
+  '  --all              --auto 时忽略会话时间窗，归档工作区全部内容',
+  '  --topic <text>     --auto 且无会话记录时的归档主题',
+  '  --save-plan <file> 把推断出的计划另存为 JSON',
+  '  --plan <file>      手工归档计划 JSON（见 templates/plan.example.json）',
   '  --out <dir>        归档输出目录，默认 <workspace>/会话产出归档',
   '  --dry-run          只打印计划，不复制',
   '  -h, --help         显示帮助',
@@ -37,9 +42,28 @@ const arg = (k, d) => { const i = argv.indexOf('--' + k); return i >= 0 ? argv[i
 const flag = k => argv.includes('--' + k);
 
 const WS = path.resolve(arg('workspace', process.cwd()));
+const auto = flag('auto');
 const planPath = arg('plan');
-if (!planPath) { console.error('缺少 --plan <plan.json>'); process.exit(2); }
-const plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+let plan;
+if (auto) {
+  const { buildAutoPlan } = await import('./auto-plan.mjs');
+  const built = buildAutoPlan({
+    workspace: WS,
+    outDir: path.resolve(arg('out', path.join(WS, '会话产出归档'))),
+    sessionId: arg('session'),
+    all: flag('all'),
+    topic: arg('topic'),
+  });
+  plan = built.plan;
+  const s = built.session;
+  console.error('auto: 扫描会话 ' + built.sessionsScanned + ' 个，本工作区 ' + built.matched + ' 个' +
+    (s ? '，采用 ' + s.id + '（' + new Date(s.created).toISOString().slice(0, 16) + '）' : '，无匹配会话，按工作区全部内容归档'));
+  const savePlan = arg('save-plan');
+  if (savePlan) fs.writeFileSync(savePlan, JSON.stringify(plan, null, 1) + String.fromCharCode(10), 'utf8');
+} else {
+  if (!planPath) { console.error('缺少 --auto 或 --plan <plan.json>'); process.exit(2); }
+  plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
+}
 const OUT = path.resolve(arg('out', path.join(WS, '会话产出归档')));
 const CATS = { ...DEFAULT_CATS, ...(plan.categories || {}) };
 const dry = flag('dry-run');

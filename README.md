@@ -9,6 +9,7 @@
 ## 特性
 
 - **归属靠证据，不靠目录名**：解码 DSH 会话转录（zstd 多帧 JSONL），从 `tool/call` 参数里提取写入路径，再用文件 mtime 与会话时间窗交叉验证。
+- **自动归档**：`--auto` 以会话创建时间为窗口，按扩展名/命名关键词/目录特征自动分类落盘，无需手写 plan。
 - **8 段式分类**：`01_最终交付 / 02_过程版本 / 03_策划文档 / 04_调研资料 / 05_源码与工作区 / 06_预览与校验 / 07_脚本 / 08_其他`。
 - **删除前哈希校验**：`workspace-purge.mjs` 逐文件算 SHA-256，只删除「归档中存在同哈希副本」的条目，默认 dry-run。
 - **环境不搬**：venv、插件源码、市场探包、`.git` 只登记「保留原位」，删除要单独确认。
@@ -31,11 +32,17 @@
 
 ## 快速开始
 
-```bash
-# 1) 盘点所有会话（默认扫描 ~/.dsh/sessions 下全部工作区）
-node scripts/session-inventory.mjs --out inventory.json
+**自动模式（默认，推荐）**：不用写任何计划文件，按会话时间窗自动分类落盘。
 
-# 2) 参照 inventory 写 plan.json（模板：templates/plan.example.json），先预演
+```bash
+node scripts/workspace-archive.mjs --workspace /path/to/workspace --auto --dry-run   # 先看计划
+node scripts/workspace-archive.mjs --workspace /path/to/workspace --auto            # 真正归档
+```
+
+**手工模式**：需要精确控制每个文件去哪个分类时使用。
+
+```bash
+node scripts/session-inventory.mjs --out inventory.json
 node scripts/workspace-archive.mjs --workspace /path/to/workspace --plan plan.json --dry-run
 node scripts/workspace-archive.mjs --workspace /path/to/workspace --plan plan.json
 

@@ -1,6 +1,6 @@
 {
   "name": "dsh-skill-workspace-manager",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "DSH skill: archive a workspace per conversation using session transcripts, then delete originals only after SHA-256 verification.",
   "type": "module",
   "license": "MIT",
@@ -27,7 +27,8 @@
   "scripts": {
     "inventory": "node scripts/session-inventory.mjs",
     "archive": "node scripts/workspace-archive.mjs",
-    "purge": "node scripts/workspace-purge.mjs"
+    "purge": "node scripts/workspace-purge.mjs",
+    "auto": "node scripts/workspace-archive.mjs --auto"
   },
   "repository": {
     "type": "git",
