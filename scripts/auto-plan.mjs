@@ -79,12 +79,13 @@ export function buildAutoPlan(opts) {
   const nextNo = existing.reduce((m, n) => Math.max(m, parseInt(n.slice(0, 2), 10) || 0), 0) + 1;
   const date = new Date((target && target.created) || Date.now());
   const iso = date.toISOString().slice(0, 10);
-  const firstClause = s => String(s || '').split(/[，。；;,.\n]/)[0];
+  const stripRef = s => String(s || '').replace(/^@?\s*[A-Za-z]:[\\/][^\s]*\s*/, '').replace(/^@\S*\s*/, '');
+  const firstClause = s => stripRef(s).split(/[，。；;,.\n]/)[0];
   const topic = sanitize(firstClause((target && (target.title || target.firstUser)) || opts.topic) || '工作区产物', 20) || '工作区产物';
 
   const entries = fs.readdirSync(WS).filter(n =>
     n !== path.basename(OUT) && n !== '会话产出归档' && n !== 'skills' && n !== 'archive-build.log' && !n.startsWith('.'));
-  const since = target && !opts.all ? (target.created || 0) - 120000 : 0;
+  const since = opts.since ? (Date.parse(opts.since) || 0) : (target && !opts.all ? (target.created || 0) - 120000 : 0);
   const items = [];
   const inplace = [];
   for (const name of entries) {

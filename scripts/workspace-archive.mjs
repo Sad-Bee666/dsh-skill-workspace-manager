@@ -30,6 +30,7 @@ const USAGE = [
   '  --session <id>     --auto 时指定会话，默认取该工作区最近活跃的会话',
   '  --all              --auto 时忽略会话时间窗，归档工作区全部内容',
   '  --topic <text>     --auto 且无会话记录时的归档主题',
+  '  --since <iso>      --auto 时只归档该时间之后变动的条目（会话很长时用来收窄）',
   '  --save-plan <file> 把推断出的计划另存为 JSON',
   '  --plan <file>      手工归档计划 JSON（见 templates/plan.example.json）',
   '  --out <dir>        归档输出目录，默认 <workspace>/会话产出归档',
@@ -55,6 +56,7 @@ if (auto) {
     sessionId: arg('session'),
     all: flag('all'),
     topic: arg('topic'),
+    since: arg('since'),
   });
   plan = built.plan;
   const s = built.session;
