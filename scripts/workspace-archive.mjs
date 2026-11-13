@@ -8,6 +8,8 @@ const DEFAULT_CATS = {
   A: '01_最终交付', B: '02_过程版本', C: '03_策划文档', D: '04_调研资料',
   E: '05_源码与工作区', F: '06_预览与校验', G: '07_脚本', H: '08_其他',
 };
+const BT = String.fromCharCode(96);
+const q = s => BT + s + BT;
 const CAT_DOC = [
   ['01', '最终交付', '可直接交付/使用的成品'],
   ['02', '过程版本', '成品的中间修订版本'],
@@ -60,6 +62,7 @@ if (auto) {
     (s ? '，采用 ' + s.id + '（' + new Date(s.created).toISOString().slice(0, 16) + '）' : '，无匹配会话，按工作区全部内容归档'));
   const savePlan = arg('save-plan');
   if (savePlan) fs.writeFileSync(savePlan, JSON.stringify(plan, null, 1) + String.fromCharCode(10), 'utf8');
+  if (flag('index-only')) { writeOverview(path.resolve(arg('out', path.join(WS, '会话产出归档')))); console.log('overview rebuilt'); process.exit(0); }
 } else {
   if (!planPath) { console.error('缺少 --auto 或 --plan <plan.json>'); process.exit(2); }
   plan = JSON.parse(fs.readFileSync(planPath, 'utf8'));
@@ -75,9 +78,6 @@ function countFiles(p) {
   for (const e of fs.readdirSync(p, { withFileTypes: true })) n += e.isDirectory() ? countFiles(path.join(p, e.name)) : 1;
   return n;
 }
-const BT = String.fromCharCode(96);
-const q = s => BT + s + BT;
-
 function readme(s, dirName, rows) {
   const L = ['# ' + dirName + ' · 会话产出归档', ''];
   L.push('- **会话主题**：' + s.topic);
@@ -99,24 +99,49 @@ function readme(s, dirName, rows) {
   return L.join('\n') + '\n';
 }
 
-function overview(groups) {
+function readMeta(sdir) {
+  const f = path.join(sdir, 'README_文件说明.md');
+  const meta = { topic: '', ids: '', goal: '' };
+  if (!fs.existsSync(f)) return meta;
+  for (const line of fs.readFileSync(f, 'utf8').split(String.fromCharCode(10))) {
+    if (line.startsWith('- **会话主题**：')) meta.topic = line.slice(line.indexOf('：') + 1).trim();
+    else if (line.startsWith('- **会话 ID**：')) meta.ids = line.slice(line.indexOf('：') + 1).trim();
+  }
+  return meta;
+}
+
+// 总览由归档目录自身重建：扫描已有会话目录，保留旧文件里的自定义章节（如清理记录）。
+function writeOverview(outDir) {
+  const dirs = fs.existsSync(outDir) ? fs.readdirSync(outDir).filter(n => /^\d{2}_/.test(n) && fs.statSync(path.join(outDir, n)).isDirectory()) : [];
+  dirs.sort((a, b) => a.localeCompare(b));
   const L = ['# 会话产出归档 · 总览', ''];
   L.push('工作区 ' + q(WS) + ' 按「一个会话 = 一个归档目录」整理。');
   L.push('分类沿用 8 段式编号：01 最终交付 / 02 过程版本 / 03 策划文档 / 04 调研资料 / 05 源码与工作区 / 06 预览与校验 / 07 脚本 / 08 其他。', '');
   L.push('| 归档目录 | 会话日期 | 主题 | 会话 ID |', '| --- | --- | --- | --- |');
-  for (const s of groups) L.push('| ' + q(s.no + '_' + s.date + '_' + s.topic) + ' | ' + s.date + ' | ' + s.topic + ' | ' + (s.ids && s.ids.length ? q(s.ids[0].slice(0, 20) + '…') : '—') + ' |');
+  for (const d of dirs) {
+    const m = readMeta(path.join(outDir, d));
+    const parts = d.split('_');
+    const datePart = /^\d{4}-\d{2}-\d{2}$/.test(parts[1] || '') ? parts[1] : '—';
+    L.push('| ' + q(d) + ' | ' + datePart + ' | ' + (m.topic || parts.slice(2).join('_') || '—') + ' | ' + (m.ids || '—') + ' |');
+  }
   L.push('', '## 说明', '');
-  L.push('1. 归档由 workspace-archive.mjs 生成，文件为复制。');
+  L.push('1. 归档由 workspace-archive.mjs 生成，文件为复制；删除原件须先过 workspace-purge.mjs 的 SHA-256 校验。');
   L.push('2. 超大环境目录（venv、插件源码、探包工作区）不复制，见各会话 README 的「保留原位」表。');
   L.push('3. 子代理会话产物归入其父会话目录。');
-  return L.join('\n') + '\n';
+  const f = path.join(outDir, 'README_总览.md');
+  if (fs.existsSync(f)) {
+    const old = fs.readFileSync(f, 'utf8');
+    const at = old.indexOf('## 清理记录');
+    if (at >= 0) L.push('', old.slice(at).trimEnd());
+  }
+  fs.writeFileSync(f, L.join(String.fromCharCode(10)) + String.fromCharCode(10), 'utf8');
 }
 
 const log = [];
 if (!dry) fs.mkdirSync(OUT, { recursive: true });
 const groups = plan.sessions;
 for (const s of groups) {
-  const dirName = s.no + '_' + s.date + '_' + s.topic;
+  const dirName = s.dirName || (s.no + '_' + s.date + '_' + s.topic);
   const sdir = path.join(OUT, dirName);
   const rows = [];
   if (!dry) fs.mkdirSync(sdir, { recursive: true });
@@ -136,7 +161,7 @@ for (const s of groups) {
   if (!dry) fs.writeFileSync(path.join(sdir, 'README_文件说明.md'), readme(s, dirName, rows), 'utf8');
   console.log((dry ? 'PLAN ' : 'DONE ') + dirName + '  items=' + (s.items || []).length);
 }
-if (!dry) fs.writeFileSync(path.join(OUT, 'README_总览.md'), overview(groups), 'utf8');
+if (!dry) writeOverview(OUT);
 const bad = log.filter(l => !l.startsWith('OK'));
 console.log((dry ? '[dry-run] ' : '') + 'groups=' + groups.length + (bad.length ? '\n' + bad.join('\n') : '') + '\nlog -> ' + path.join(OUT, '..', 'archive-build.log'));
 if (!dry) fs.writeFileSync(path.join(WS, 'archive-build.log'), log.join('\n'), 'utf8');

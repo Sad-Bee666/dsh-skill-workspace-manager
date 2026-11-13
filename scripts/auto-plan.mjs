@@ -68,6 +68,14 @@ export function buildAutoPlan(opts) {
   else target = mine.slice().sort((a, b) => (b.last || 0) - (a.last || 0))[0] || null;
 
   const existing = fs.existsSync(OUT) ? fs.readdirSync(OUT).filter(n => /^\d{2}_/.test(n)) : [];
+  // 同一会话重复归档时复用已有目录，避免建出 12_/13_ 这样的重复文件夹
+  let reuse = null;
+  if (target) {
+    for (const d of existing.slice().sort().reverse()) {
+      const f = path.join(OUT, d, 'README_文件说明.md');
+      if (fs.existsSync(f) && fs.readFileSync(f, 'utf8').includes(target.id)) { reuse = d; break; }
+    }
+  }
   const nextNo = existing.reduce((m, n) => Math.max(m, parseInt(n.slice(0, 2), 10) || 0), 0) + 1;
   const date = new Date((target && target.created) || Date.now());
   const iso = date.toISOString().slice(0, 10);
@@ -99,9 +107,11 @@ export function buildAutoPlan(opts) {
     }
   }
 
+  const no = reuse ? reuse.slice(0, 2) : String(nextNo).padStart(2, '0');
   const plan = {
     sessions: [{
-      no: String(nextNo).padStart(2, '0'),
+      no,
+      dirName: reuse || undefined,
       date: iso,
       topic,
       ids: target ? [target.id] : [],
@@ -110,5 +120,5 @@ export function buildAutoPlan(opts) {
       inplace,
     }],
   };
-  return { plan, session: target, sessionsScanned: sessions.length, matched: mine.length };
+  return { plan, session: target, sessionsScanned: sessions.length, matched: mine.length, reused: reuse }; 
 }
